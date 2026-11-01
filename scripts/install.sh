@@ -13,6 +13,9 @@ WIPE_DATA=0
 BIN_DIR=""
 ASSUME_YES=0
 INTERACTIVE=0
+REPO="bhagyamudgal/netusage"
+REF="main"
+REMOTE_MODE=0
 BILLING_DAY_SET=0
 HOTSPOT_SET=0
 CIDR_SET=0
@@ -32,6 +35,8 @@ Options:
   --interval SEC          Seconds between samples, positive int (default 60)
   --bun PATH              Bun binary to use (default: auto-detect real bun)
   --bin-dir DIR           Where to install the netusage shim (default $HOME/.local/bin)
+  --repo SLUG             GitHub repo for no-checkout install (default bhagyamudgal/netusage)
+  --ref REF               Git ref for no-checkout install (default main)
   --yes, -y               Accept all defaults, never prompt
   --interactive           Prompt for every setting, not just billing day
   --no-bootstrap          Copy files and write plist without loading it
@@ -179,6 +184,8 @@ while [ $# -gt 0 ]; do
     --interval) [ $# -ge 2 ] || die "--interval needs a value"; INTERVAL="$2"; INTERVAL_SET=1; shift 2 ;;
     --bun) [ $# -ge 2 ] || die "--bun needs a value"; BUN_FLAG="$2"; shift 2 ;;
     --bin-dir) [ $# -ge 2 ] || die "--bin-dir needs a value"; BIN_DIR="$2"; shift 2 ;;
+    --repo) [ $# -ge 2 ] || die "--repo needs a value"; REPO="$2"; shift 2 ;;
+    --ref) [ $# -ge 2 ] || die "--ref needs a value"; REF="$2"; shift 2 ;;
     --yes|-y) ASSUME_YES=1; shift ;;
     --interactive) INTERACTIVE=1; shift ;;
     --no-bootstrap) NO_BOOTSTRAP=1; shift ;;
@@ -261,6 +268,31 @@ valid_interval "$INTERVAL" || die "--interval must be a positive integer (got '$
 BUN_BIN="$(resolve_bun)"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ ! -f "${SCRIPT_DIR}/src/cli.ts" ] || [ ! -f "${SCRIPT_DIR}/package.json" ]; then
+  command -v curl >/dev/null 2>&1 || die "curl is required for no-checkout install but was not found."
+  command -v tar >/dev/null 2>&1 || die "tar is required for no-checkout install but was not found."
+  case "$REPO" in
+    *github.com/*) REPO="${REPO##*github.com/}" ;;
+  esac
+  REPO="${REPO%.git}"
+  REMOTE_MODE=1
+  FETCH_DIR="$(mktemp -d)"
+  TARBALL_URL="https://codeload.github.com/${REPO}/tar.gz/refs/heads/${REF}"
+  if curl -fsSL "$TARBALL_URL" -o "${FETCH_DIR}/repo.tgz"; then
+    # Top dir name tracks the ref, so read it from the archive instead of assuming it.
+    TOP_DIR="$(tar -tzf "${FETCH_DIR}/repo.tgz" | cut -d/ -f1 | head -n 1 || true)"
+    [ -n "${TOP_DIR:-}" ] || die "could not read file list from $TARBALL_URL"
+    tar -xzf "${FETCH_DIR}/repo.tgz" -C "$FETCH_DIR" "${TOP_DIR}/src" "${TOP_DIR}/lib" "${TOP_DIR}/package.json" "${TOP_DIR}/bun.lock" "${TOP_DIR}/tsconfig.json" || die "could not extract netusage sources from $TARBALL_URL"
+    SCRIPT_DIR="${FETCH_DIR}/${TOP_DIR}"
+  else
+    RAW_BASE="https://raw.githubusercontent.com/${REPO}/${REF}"
+    for f in src/cli.ts src/classify.ts src/config.ts src/cycle.ts src/delta.ts src/netstat.ts src/store.ts lib/try-catch.ts package.json bun.lock tsconfig.json; do
+      mkdir -p "${FETCH_DIR}/tree/$(dirname "$f")"
+      curl -fsSL "${RAW_BASE}/$f" -o "${FETCH_DIR}/tree/$f" || die "could not fetch $f from ${RAW_BASE} (tarball failed, raw fallback failed)"
+    done
+    SCRIPT_DIR="${FETCH_DIR}/tree"
+  fi
+fi
 mkdir -p "$APP_DIR"
 if command -v rsync >/dev/null 2>&1; then
   rsync -a --delete --exclude node_modules "${SCRIPT_DIR}/src/" "${APP_DIR}/src/"
@@ -373,10 +405,15 @@ case ":$PATH:" in
   *":${BIN_DIR}:"*) ;;
   *) echo "Add the shim to PATH: export PATH=\"${BIN_DIR}:\$PATH\"" ;;
 esac
+if [ "$REMOTE_MODE" -eq 1 ]; then
+  UNINSTALL_CMD="bash <(curl -fsSL https://raw.githubusercontent.com/${REPO}/${REF}/scripts/install.sh) --uninstall"
+else
+  UNINSTALL_CMD="bash scripts/install.sh --uninstall"
+fi
 if [ "$NO_BOOTSTRAP" -eq 0 ] && [ "$(uname)" = "Darwin" ]; then
   echo "Next: run \`netusage report\`, data lives at ${DATA_DIR}/usage.json."
-  echo "Uninstall: bash scripts/install.sh --uninstall"
+  echo "Uninstall: $UNINSTALL_CMD"
 else
   echo "Next: run \`$SHIM report\`, data lives at ${DATA_DIR}/usage.json."
-  echo "Uninstall: bash scripts/install.sh --uninstall"
+  echo "Uninstall: $UNINSTALL_CMD"
 fi

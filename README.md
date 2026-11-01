@@ -17,8 +17,23 @@ macOS and Bun.
 
 ## Install
 
+No checkout needed (trust anchor is TLS to GitHub):
+
 ```sh
-bash scripts/install.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/bhagyamudgal/netusage/main/scripts/install.sh)
+```
+
+That form is interactive. Process substitution keeps stdin on the terminal, so prompts still work. For automation, pipe and pass flags instead:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bhagyamudgal/netusage/main/scripts/install.sh | bash -s -- --yes --billing-day 1
+```
+
+Or clone first and install from the checkout:
+
+```sh
+git clone https://github.com/bhagyamudgal/netusage.git
+bash netusage/scripts/install.sh
 ```
 
 Setup runs in one of four modes:
