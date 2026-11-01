@@ -96,3 +96,9 @@ Exit 127 from a sample means bun was not found at the baked path. Re-run the ins
 When the network is neither wifi nor hotspot, the sample saves baselines only and counts nothing. Counters that reset (reboot, interface flap) are clamped at zero instead of going negative.
 
 A corrupt store fails loudly instead of resetting. The error lands in `~/.netusage/error.log`. Inspect `usage.json` with `jq empty` to confirm, then either fix the JSON or delete the file to start over (deleting loses history).
+
+## Branch protection
+
+`main` is locked by the "main protection" ruleset: no force-push, no
+deletion, signed commits required. Direct pushes with a valid SSH
+signature keep working; history rewrites do not.
