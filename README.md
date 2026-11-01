@@ -77,9 +77,7 @@ cat ~/.netusage/usage.json
 jq '.cycles' ~/.netusage/usage.json
 ```
 
-Report prints every cycle newest-first with GB totals, where 1 GB is 1e9 bytes. After the four per-bucket rows it prints five aggregate rows per cycle: wifi total is wifi direct plus wifi VPN, hotspot total is hotspot direct plus hotspot VPN, direct total is wifi plus hotspot direct, vpn total is wifi plus hotspot VPN, and combined is all four.
-
-Each cycle then ends with a terminal chart: one bar per bucket scaled to the cycle's largest bucket total (up plus down), plus one stacked bar for the combined total. Bars are fixed at 20 columns with no color codes, so output is identical piped or not:
+Report prints every cycle newest-first with GB totals, where 1 GB is 1e9 bytes. After the four per-bucket rows it prints five aggregate rows: wifi and hotspot totals across kinds, direct and vpn totals across networks, and the combined total:
 
 ```text
 Cycle 2026-11-01
@@ -92,15 +90,8 @@ Cycle 2026-11-01
   direct total up 2.00 GB down 4.00 GB
   vpn total up 0.00 GB down 2.00 GB
   combined total up 2.00 GB down 6.00 GB
-  wifi/direct bar [█████░░░░░░░░░░░░░░░]
-  wifi/vpn bar [                    ]
-  hotspot/direct bar [█████░░░░░          ]
-  hotspot/vpn bar [░░░░░░░░░░          ]
-  combined bar [██████████▒▒▒▒▒░░░░░]
-  legend up=█ down=░ combined: █=wifi/direct ▓=wifi/vpn ▒=hotspot/direct ░=hotspot/vpn
 ```
 
-In bucket bars █ is up bytes and ░ is down bytes. In the combined bar each segment is one bucket (█ wifi/direct, ▓ wifi/vpn, ▒ hotspot/direct, ░ hotspot/vpn) sized by share of the combined total. The four shades also differ in lightness, so the chart survives grayscale and plain-text logs.
 
 The first sample only records baselines, so usage starts accruing from the second sample on.
 

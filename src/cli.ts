@@ -35,85 +35,6 @@ export function splitUsage(en0: DeltaTotals, proton: DeltaTotals, fullTunnel: bo
   };
 }
 
-/** Fixed width of every terminal bar, identical piped or not. */
-export const BAR_WIDTH = 20;
-
-/** Render a fraction 0-1 as a fixed-width block bar, clamping outside input. */
-export function bar(fraction: number, width: number): string {
-  if (width <= 0) {
-    return "";
-  }
-  const size = Math.floor(width);
-  const clamped = Number.isNaN(fraction) ? 0 : Math.min(1, Math.max(0, fraction));
-  const filled = Math.round(clamped * size);
-  return "█".repeat(filled) + " ".repeat(size - filled);
-}
-
-/** Render one bucket as up/down shares scaled to the cycle maximum. */
-export function splitBar(up: number, down: number, maxTotal: number, width: number): string {
-  if (width <= 0) {
-    return "";
-  }
-  const size = Math.floor(width);
-  const safeUp = up > 0 ? up : 0;
-  const safeDown = down > 0 ? down : 0;
-  const total = safeUp + safeDown;
-  if (!(maxTotal > 0) || total <= 0) {
-    return " ".repeat(size);
-  }
-  const filled = Math.min(size, Math.round((total / maxTotal) * size));
-  const upLength = Math.round((safeUp / total) * filled);
-  return "█".repeat(upLength) + "░".repeat(filled - upLength) + " ".repeat(size - filled);
-}
-
-/** Render bucket totals as one stacked bar, glyph per bucket in legend order. */
-export function stackedBar(values: number[], width: number): string {
-  const glyphs = ["█", "▓", "▒", "░"];
-  if (width <= 0) {
-    return "";
-  }
-  const size = Math.floor(width);
-  const safe = values.map(function (value) {
-    return value > 0 ? value : 0;
-  });
-  const total = safe.reduce(function (sum, value) {
-    return sum + value;
-  }, 0);
-  if (total <= 0) {
-    return " ".repeat(size);
-  }
-  const exact = safe.map(function (value) {
-    return (value / total) * size;
-  });
-  const lengths = exact.map(function (part) {
-    return Math.floor(part);
-  });
-  const remainder =
-    size -
-    lengths.reduce(function (sum, part) {
-      return sum + part;
-    }, 0);
-  const order = exact
-    .map(function (part, index) {
-      return { frac: part - Math.floor(part), index };
-    })
-    .sort(function (first, second) {
-      return second.frac - first.frac;
-    });
-  for (let rank = 0; rank < remainder; rank += 1) {
-    const slot = order[rank % order.length];
-    if (slot !== undefined && lengths[slot.index] !== undefined) {
-      lengths[slot.index] += 1;
-    }
-  }
-  return lengths
-    .map(function (length, index) {
-      const glyph = glyphs[index % glyphs.length];
-      return glyph === undefined ? "" : glyph.repeat(length);
-    })
-    .join("");
-}
-
 /** Record one sample into the current billing cycle, always advancing baselines first. */
 export async function sample(): Promise<void> {
   const usage = await loadUsage();
@@ -183,26 +104,6 @@ export async function report(): Promise<void> {
     console.log(`  direct total up ${toGB(direct.up)} down ${toGB(direct.down)}`);
     console.log(`  vpn total up ${toGB(vpn.up)} down ${toGB(vpn.down)}`);
     console.log(`  combined total up ${toGB(combined.up)} down ${toGB(combined.down)}`);
-    const buckets = [entry.wifi.direct, entry.wifi.vpn, entry.hotspot.direct, entry.hotspot.vpn];
-    const names = ["wifi/direct", "wifi/vpn", "hotspot/direct", "hotspot/vpn"];
-    const maxTotal = Math.max(
-      ...buckets.map(function (bucket) {
-        return bucket.up + bucket.down;
-      }),
-    );
-    for (let index = 0; index < buckets.length; index += 1) {
-      const bucket = buckets[index];
-      const name = names[index];
-      if (bucket === undefined || name === undefined) {
-        continue;
-      }
-      console.log(`  ${name} bar [${splitBar(bucket.up, bucket.down, maxTotal, BAR_WIDTH)}]`);
-    }
-    const combinedValues = buckets.map(function (bucket) {
-      return bucket.up + bucket.down;
-    });
-    console.log(`  combined bar [${stackedBar(combinedValues, BAR_WIDTH)}]`);
-    console.log("  legend up=█ down=░ combined: █=wifi/direct ▓=wifi/vpn ▒=hotspot/direct ░=hotspot/vpn");
   }
 }
 
