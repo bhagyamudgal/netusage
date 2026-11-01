@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "test": "bun test",
-    "typecheck": "bunx tsc --noEmit"
+    "typecheck": "bunx tsc --noEmit",
+    "sample": "bun src/cli.ts sample",
+    "report": "bun src/cli.ts report"
   },
   "dependencies": {
     "date-fns": "latest",
