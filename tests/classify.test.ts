@@ -4,6 +4,7 @@ import { parseRoutes } from "../src/netstat";
 import {
   IBN_FIXTURE,
   ROUTES_FULL_TUNNEL_FIXTURE,
+  ROUTES_FULL_TUNNEL_LIVE_FIXTURE,
   ROUTES_HOTSPOT_FIXTURE,
   ROUTES_OFFLINE_FIXTURE,
   ROUTES_WIFI_FIXTURE,
@@ -35,6 +36,14 @@ describe("classifyNetwork", () => {
   test("offline when no default on en0", () => {
     expect(classifyNetwork(parseRoutes(ROUTES_OFFLINE_FIXTURE))).toBe("offline");
   });
+
+  test("wifi for scoped en0 default when primary exits via proton utun", () => {
+    expect(classifyNetwork(parseRoutes(ROUTES_FULL_TUNNEL_FIXTURE))).toBe("wifi");
+  });
+
+  test("wifi for live full-tunnel table with scoped en0 default", () => {
+    expect(classifyNetwork(parseRoutes(ROUTES_FULL_TUNNEL_LIVE_FIXTURE))).toBe("wifi");
+  });
 });
 
 describe("isFullTunnel", () => {
@@ -44,6 +53,10 @@ describe("isFullTunnel", () => {
 
   test("true when primary default exits via proton utun", () => {
     expect(isFullTunnel(parseRoutes(ROUTES_FULL_TUNNEL_FIXTURE), "utun5")).toBe(true);
+  });
+
+  test("true for live full-tunnel table via proton utun", () => {
+    expect(isFullTunnel(parseRoutes(ROUTES_FULL_TUNNEL_LIVE_FIXTURE), "utun10")).toBe(true);
   });
 
   test("false when proton utun is null", () => {

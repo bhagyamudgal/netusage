@@ -41,3 +41,15 @@ export const ROUTES_OFFLINE_FIXTURE = `Routing tables
 Internet:
 Destination        Gateway            Flags      Netif Expire
 127.0.0.1          127.0.0.1          UH         lo0`;
+
+export const ROUTES_FULL_TUNNEL_LIVE_FIXTURE = `Routing tables
+
+Internet:
+Destination        Gateway            Flags      Netif Expire
+default            link#37            UCSg       utun10
+default            192.168.0.1        UGScIg     en0
+192.168.0.0/24     link#15            UCS        en0
+192.168.0.10       aa:bb:cc:dd:ee:ff  UHLWi      en0
+224.0.0.0/4        link#15            UmCS       en0
+192.0.2.1          192.0.2.1          UH         bridge100
+198.51.100.0/24    link#20            UCS        bridge100`;

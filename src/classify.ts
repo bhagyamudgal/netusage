@@ -38,13 +38,13 @@ export function detectProton(ibnOutput: string): string | null {
   return null;
 }
 
-/** Classifies the network from the primary default route (no I flag) on en0. */
+/** Classifies the network from the en0 default row, scoped or primary, preferring the no-I row. */
 export function classifyNetwork(routes: RouteEntry[]): NetworkKind {
-  const primary = routes.find((r) => r.gateway === "default" || r.destination === "default");
-  const scoped = routes.filter((r) => r.destination === "default");
-  const unscoped = scoped.find((r) => !r.flags.includes("I"));
-  const chosen = unscoped ?? primary;
-  if (!chosen || chosen.netif !== "en0") return "offline";
+  const en0Defaults = routes.filter(
+    (r) => (r.destination === "default" || r.gateway === "default") && r.netif === "en0",
+  );
+  const chosen = en0Defaults.find((r) => !r.flags.includes("I")) ?? en0Defaults[0];
+  if (!chosen) return "offline";
   if (chosen.gateway === HOTSPOT_GATEWAY) return "hotspot";
   return "wifi";
 }
